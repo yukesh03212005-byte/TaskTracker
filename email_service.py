@@ -1,48 +1,62 @@
+import os
 import smtplib
 from email.message import EmailMessage
 
-from config import (
-    SENDER_EMAIL,
-    APP_PASSWORD,
-    RECEIVER_EMAIL
-)
+# Read credentials from Streamlit Secrets (Environment Variables)
+
+SENDER_EMAIL = os.environ["SENDER_EMAIL"]
+APP_PASSWORD = os.environ["APP_PASSWORD"]
+RECEIVER_EMAIL = os.environ["RECEIVER_EMAIL"]
 
 
 def send_email(tasks):
+    """
+    Send an email containing all pending tasks.
+    """
 
-    print("Sender:", SENDER_EMAIL)
-    print("Receiver:", RECEIVER_EMAIL)
-    print("Password Length:", len(APP_PASSWORD))
+    if len(tasks) == 0:
+        return False
 
-    body = "Pending Tasks\n\n"
+    body = """Hello,
+
+This is an automatic reminder from TaskTrack.
+
+The following tasks are still pending:
+
+"""
 
     for task in tasks:
-        body += f"- {task['title']}\n"
+        body += f"• {task['title']}\n"
 
-    msg = EmailMessage()
+    body += """
 
-    msg["Subject"] = "Task Reminder"
+Please remind me to complete these tasks.
 
-    msg["From"] = SENDER_EMAIL
+Regards,
+TaskTrack
+"""
 
-    msg["To"] = RECEIVER_EMAIL
+    message = EmailMessage()
 
-    msg.set_content(body)
+    message["Subject"] = "Task Reminder - Pending Tasks"
+    message["From"] = SENDER_EMAIL
+    message["To"] = RECEIVER_EMAIL
+
+    message.set_content(body)
 
     try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
 
-        smtp = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+            smtp.login(
+                SENDER_EMAIL,
+                APP_PASSWORD
+            )
 
-        smtp.login(SENDER_EMAIL, APP_PASSWORD)
+            smtp.send_message(message)
 
-        smtp.send_message(msg)
-
-        smtp.quit()
-
-        print("EMAIL SENT")
+        print("Email Sent Successfully")
+        return True
 
     except Exception as e:
-
-        print(e)
-
+        print(f"Email Error: {e}")
         raise
